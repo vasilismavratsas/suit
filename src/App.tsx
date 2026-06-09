@@ -4,6 +4,7 @@ import { TileModelViewer } from "./TileModelViewer";
 type SuitSection = "torso" | "arm" | "leg" | "helmet";
 type TileShape = "hex" | "pent";
 type MaterialGrade = "Ti-6Al-4V" | "Ti-6242" | "Ti-beta";
+type SurfaceMode = "flat-panel" | "arm-tube" | "torso-shell" | "helmet-dome";
 
 type Tile = {
   id: string;
@@ -55,6 +56,37 @@ const sectionDetails: Record<
     heightScale: 0.62,
   },
 };
+
+const surfaceModes: Record<SurfaceMode, { label: string; description: string }> = {
+  "flat-panel": {
+    label: "Flat development panel",
+    description: "A buildable sheet view for laying out tiles before bending.",
+  },
+  "arm-tube": {
+    label: "Arm / leg tube",
+    description: "Wraps tiles around a cylindrical limb section.",
+  },
+  "torso-shell": {
+    label: "Torso shell",
+    description: "Wraps tiles around an elliptical chest and back shell.",
+  },
+  "helmet-dome": {
+    label: "Helmet dome",
+    description: "Projects tiles over a rounded crown surface.",
+  },
+};
+
+function getDefaultSurfaceMode(section: SuitSection): SurfaceMode {
+  if (section === "arm" || section === "leg") {
+    return "arm-tube";
+  }
+
+  if (section === "helmet") {
+    return "helmet-dome";
+  }
+
+  return "torso-shell";
+}
 
 function getHalfWidth(section: SuitSection, normalizedY: number): number {
   const y = Math.max(0, Math.min(1, normalizedY));
@@ -256,6 +288,8 @@ function formatNumber(value: number): string {
 
 function App() {
   const [section, setSection] = useState<SuitSection>("torso");
+  const [surfaceMode, setSurfaceMode] = useState<SurfaceMode>("torso-shell");
+  const [wrapAngle, setWrapAngle] = useState(240);
   const [tileRadius, setTileRadius] = useState(27);
   const [connectorGap, setConnectorGap] = useState(5);
   const [curvature, setCurvature] = useState(0.45);
@@ -276,6 +310,7 @@ function App() {
   );
   const pentagonCount = tiles.filter((tile) => tile.shape === "pent").length;
   const connectorCount = tiles.reduce((sum, tile) => sum + (tile.shape === "hex" ? 6 : 5), 0);
+  const surfacePlaneCount = surfaceMode === "flat-panel" ? 1 : Math.max(2, Math.ceil(wrapAngle / 45));
   const designExport = useMemo(
     () => ({
       project: "next-generation-spacesuit-exoskeleton",
@@ -285,6 +320,8 @@ function App() {
         tileRadiusMm: tileRadius * 2.8,
         connectorGapMm: connectorGap * 2.8,
         curvature,
+        surfaceMode,
+        wrapAngleDegrees: surfaceMode === "flat-panel" ? 0 : wrapAngle,
       },
       billOfMaterials: {
         tiles: tiles.length,
@@ -294,8 +331,9 @@ function App() {
         connectors: connectorCount,
       },
       model3d: {
-        projection: "curved-exoskeleton-shell",
+        projection: surfaceModes[surfaceMode].label,
         plateGeometry: "extruded regular polygon tiles",
+        linkedSurfacePlanes: surfacePlaneCount,
         interaction: "drag-to-rotate, wheel-to-zoom, click-to-select",
       },
       selectedTile,
@@ -313,7 +351,20 @@ function App() {
         rotationDeg: Number(((tile.rotation * 180) / Math.PI).toFixed(1)),
       })),
     }),
-    [connectorCount, curvature, pentagonCount, section, selectedTile, tileRadius, connectorGap, tiles, totalMass],
+    [
+      connectorCount,
+      curvature,
+      pentagonCount,
+      section,
+      selectedTile,
+      surfaceMode,
+      surfacePlaneCount,
+      tileRadius,
+      connectorGap,
+      tiles,
+      totalMass,
+      wrapAngle,
+    ],
   );
 
   function updateSelectedTile(patch: TileOverride) {
@@ -375,13 +426,44 @@ function App() {
 
           <label>
             Suit section
-            <select value={section} onChange={(event) => setSection(event.target.value as SuitSection)}>
+            <select
+              value={section}
+              onChange={(event) => {
+                const nextSection = event.target.value as SuitSection;
+                setSection(nextSection);
+                setSurfaceMode(getDefaultSurfaceMode(nextSection));
+              }}
+            >
               {Object.entries(sectionDetails).map(([key, value]) => (
                 <option key={key} value={key}>
                   {value.label}
                 </option>
               ))}
             </select>
+          </label>
+
+          <label>
+            3D surface
+            <select value={surfaceMode} onChange={(event) => setSurfaceMode(event.target.value as SurfaceMode)}>
+              {Object.entries(surfaceModes).map(([key, value]) => (
+                <option key={key} value={key}>
+                  {value.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Wrap coverage <span>{surfaceMode === "flat-panel" ? "flat" : `${wrapAngle} deg`}</span>
+            <input
+              disabled={surfaceMode === "flat-panel"}
+              min="90"
+              max="360"
+              step="15"
+              type="range"
+              value={wrapAngle}
+              onChange={(event) => setWrapAngle(Number(event.target.value))}
+            />
           </label>
 
           <label>
@@ -434,6 +516,10 @@ function App() {
             <div>
               <strong>{formatNumber(totalMass / 1000)} kg</strong>
               <span>Ti mass</span>
+            </div>
+            <div>
+              <strong>{surfacePlaneCount}</strong>
+              <span>3D planes</span>
             </div>
           </div>
 
@@ -604,13 +690,17 @@ function App() {
           <h2>Rotate the generated exoskeleton shell</h2>
           <p>
             The CAD generator now builds an extruded 3D model from the same hexagonal and
-            pentagonal titanium tiles. Drag the model to rotate it, scroll to zoom, and click a
-            plate to inspect or edit it.
+            pentagonal titanium tiles. Choose a 3D surface to wrap linked tiles around an arm,
+            leg, torso, or helmet form, then drag to rotate, scroll to zoom, and click a plate
+            to inspect or edit it.
           </p>
+          <p className="surface-summary">{surfaceModes[surfaceMode].description}</p>
         </div>
         <TileModelViewer
           tiles={tiles}
           selectedTileId={selectedTile?.id ?? null}
+          surfaceMode={surfaceMode}
+          wrapAngle={wrapAngle}
           width={SVG_WIDTH}
           height={SVG_HEIGHT}
           onSelectTile={setSelectedTileId}
