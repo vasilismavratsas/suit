@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { TileModelViewer } from "./TileModelViewer";
 
 type SuitSection = "torso" | "arm" | "leg" | "helmet";
 type TileShape = "hex" | "pent";
@@ -275,7 +276,6 @@ function App() {
   );
   const pentagonCount = tiles.filter((tile) => tile.shape === "pent").length;
   const connectorCount = tiles.reduce((sum, tile) => sum + (tile.shape === "hex" ? 6 : 5), 0);
-  const previewTiles = tiles.filter((_, index) => index % Math.max(1, Math.floor(tiles.length / 36)) === 0).slice(0, 36);
   const designExport = useMemo(
     () => ({
       project: "next-generation-spacesuit-exoskeleton",
@@ -292,6 +292,11 @@ function App() {
         pentagons: pentagonCount,
         titaniumMassGrams: Number(totalMass.toFixed(2)),
         connectors: connectorCount,
+      },
+      model3d: {
+        projection: "curved-exoskeleton-shell",
+        plateGeometry: "extruded regular polygon tiles",
+        interaction: "drag-to-rotate, wheel-to-zoom, click-to-select",
       },
       selectedTile,
       tiles: tiles.map((tile) => ({
@@ -595,29 +600,21 @@ function App() {
 
       <section className="panel preview-panel">
         <div>
-          <p className="eyebrow">Assembly preview</p>
-          <h2>Curved titanium tile field</h2>
+          <p className="eyebrow">Interactive 3D model</p>
+          <h2>Rotate the generated exoskeleton shell</h2>
           <p>
-            This preview exaggerates depth to show how repeated plates step over a pressure-suit
-            surface while connectors maintain a continuous mechanical path.
+            The CAD generator now builds an extruded 3D model from the same hexagonal and
+            pentagonal titanium tiles. Drag the model to rotate it, scroll to zoom, and click a
+            plate to inspect or edit it.
           </p>
         </div>
-        <div className="preview-stage" aria-hidden="true">
-          {previewTiles.map((tile, index) => (
-            <span
-              key={tile.id}
-              className={`preview-tile ${tile.shape}`}
-              style={
-                {
-                  "--x": `${(index % 9) * 42}px`,
-                  "--y": `${Math.floor(index / 9) * 38}px`,
-                  "--z": `${Math.sin(index * 0.7) * 18}px`,
-                  "--rotate": `${(tile.rotation * 180) / Math.PI}deg`,
-                } as React.CSSProperties
-              }
-            />
-          ))}
-        </div>
+        <TileModelViewer
+          tiles={tiles}
+          selectedTileId={selectedTile?.id ?? null}
+          width={SVG_WIDTH}
+          height={SVG_HEIGHT}
+          onSelectTile={setSelectedTileId}
+        />
       </section>
     </main>
   );
