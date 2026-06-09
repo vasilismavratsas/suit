@@ -149,6 +149,7 @@ export function TileModelViewer({
       return undefined;
     }
 
+    const host = container;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 1000);
@@ -158,7 +159,7 @@ export function TileModelViewer({
 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    container.appendChild(renderer.domElement);
+    host.appendChild(renderer.domElement);
 
     scene.add(modelGroup);
     scene.add(new THREE.AmbientLight("#7892a7", 1.25));
@@ -182,7 +183,7 @@ export function TileModelViewer({
     modelGroupRef.current = modelGroup;
 
     function resize() {
-      const bounds = container.getBoundingClientRect();
+      const bounds = host.getBoundingClientRect();
       const nextWidth = Math.max(320, bounds.width);
       const nextHeight = Math.max(320, bounds.height);
 
@@ -254,7 +255,7 @@ export function TileModelViewer({
     }
 
     const resizeObserver = new ResizeObserver(resize);
-    resizeObserver.observe(container);
+    resizeObserver.observe(host);
     resize();
     animate();
 

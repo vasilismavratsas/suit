@@ -10,7 +10,7 @@ A Vite + React web app for designing a next-generation space suit exoskeleton ma
 - Interactive tile inspector for material, thickness, rotation, and shape overrides
 - Mass, connector, and bill-of-material metrics
 - Exportable JSON model for CAD/manufacturing handoff
-- 3D-style assembly preview of the curved titanium tile field
+- Interactive 3D titanium tile model with drag-to-rotate, scroll-to-zoom, and click-to-select controls
 
 ## Run locally
 
