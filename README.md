@@ -11,6 +11,8 @@ A Vite + React web app for designing a next-generation space suit exoskeleton ma
 - Mass, connector, and bill-of-material metrics
 - Exportable JSON model for CAD/manufacturing handoff
 - Interactive 3D titanium tile model with drag-to-rotate, scroll-to-zoom, and click-to-select controls
+- Multi-surface assembly modes for flat panels, arm/leg tubes, torso shells, and helmet domes
+- Adjustable wrap coverage for linking tile fields around cylindrical or elliptical suit sections
 
 ## Run locally
 
